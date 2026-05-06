@@ -1,0 +1,19 @@
+{
+  "name": "nhc-user-management",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "prisma:generate": "npm run prisma:generate -w apps/api",
+    "prisma:migrate": "npm run prisma:migrate -w apps/api",
+    "prisma:seed": "npm run prisma:seed -w apps/api"
+  }
+}
