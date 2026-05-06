@@ -8,9 +8,10 @@ import { Activity, KeyRound, LogOut, UserCog, Users, MonitorCheck } from 'lucide
 import { apiPost, clearSession, hasSession } from '@/lib/api';
 
 const nav = [
-  { href: '/users', label: 'Users', icon: Users },
-  { href: '/roles', label: 'Roles', icon: UserCog },
-  { href: '/permissions', label: 'Permissions', icon: KeyRound },
+  { href: '/patients', label: 'Patients', icon: Users },
+  { href: '/users', label: 'Users', icon: UserCog },
+  { href: '/roles', label: 'Roles', icon: KeyRound },
+  { href: '/permissions', label: 'Permissions', icon: Activity },
   { href: '/sessions', label: 'Sessions', icon: MonitorCheck },
   { href: '/audit-logs', label: 'Audit Logs', icon: Activity },
 ];
@@ -48,8 +49,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="brand">
           <span className="brand-mark">NHC</span>
           <span>
-            <strong>User Management</strong>
-            <small>Super admin console</small>
+            <strong>NHC Admin Portal</strong>
+            <small>Hospital control center</small>
           </span>
         </div>
         <nav>

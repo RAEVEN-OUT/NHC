@@ -11,6 +11,8 @@ import { RolesModule } from './roles/roles.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { UsersModule } from './users/users.module';
 
+import { PatientsModule } from './patients/patients.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -21,6 +23,7 @@ import { UsersModule } from './users/users.module';
     PermissionsModule,
     SessionsModule,
     AuditModule,
+    PatientsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

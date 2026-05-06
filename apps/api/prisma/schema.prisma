@@ -30,6 +30,7 @@ model User {
   sessions     Session[]
   refreshTokens RefreshToken[]
   auditLogs    AuditLog[] @relation("AuditActor")
+  registeredCustomers Customer[] @relation("RegisteredBy")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at")
@@ -123,3 +124,89 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum RegistrationSource {
+  FIELD_EXEC
+  ADMIN
+  SELF
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CardStatus {
+  ACTIVE
+  EXPIRED
+  BLOCKED
+}
+
+model Customer {
+  id                 String             @id @default(uuid()) @db.Uuid
+  customerCode       String             @unique @map("customer_code")
+  firstName          String             @map("first_name")
+  lastName           String             @map("last_name")
+  gender             Gender
+  dob                DateTime           @db.Date
+  phone              String             @unique
+  email              String?            @unique
+  address            String?            @db.Text
+  city               String?
+  district           String?
+  state              String?
+  pincode            String?
+  registrationSource RegistrationSource @default(ADMIN) @map("registration_source")
+  registeredById     String?            @map("registered_by") @db.Uuid
+  registeredBy       User?              @relation("RegisteredBy", fields: [registeredById], references: [id])
+  status             CustomerStatus     @default(ACTIVE)
+  
+  familyMembers      FamilyMember[]
+  membershipCards    MembershipCard[]
+  
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  deletedAt          DateTime?          @map("deleted_at")
+
+  @@map("customers")
+}
+
+model FamilyMember {
+  id           String         @id @default(uuid()) @db.Uuid
+  customerId   String         @map("customer_id") @db.Uuid
+  customer     Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fullName     String         @map("full_name")
+  relationship String         // spouse, child, parent
+  dob          DateTime?      @db.Date
+  gender       Gender?
+  phone        String?
+  status       CustomerStatus @default(ACTIVE)
+  
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@map("family_members")
+}
+
+model MembershipCard {
+  id          String         @id @default(uuid()) @db.Uuid
+  customerId  String         @map("customer_id") @db.Uuid
+  customer    Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  cardNumber  String         @unique @map("card_number")
+  issueDate   DateTime       @default(now()) @map("issue_date")
+  expiryDate  DateTime?      @map("expiry_date")
+  qrCode      String?        @map("qr_code")
+  status      CardStatus     @default(ACTIVE)
+  
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  @@map("membership_cards")
+}
+

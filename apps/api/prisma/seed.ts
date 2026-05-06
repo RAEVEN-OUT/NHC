@@ -30,6 +30,12 @@ const permissions = [
   ['session.view', 'Sessions', 'View active sessions'],
   ['session.force_logout', 'Sessions', 'Force logout sessions'],
   ['audit.view', 'Audit', 'View audit logs'],
+  ['patient.view', 'Patients', 'View patient list and profiles'],
+  ['patient.create', 'Patients', 'Register new patients'],
+  ['patient.edit', 'Patients', 'Update patient information'],
+  ['patient.delete', 'Patients', 'Soft delete patients'],
+  ['family.manage', 'Patients', 'Manage patient family members'],
+  ['card.manage', 'Patients', 'Issue and manage membership cards'],
 ];
 
 const rolePermissions: Record<string, string[]> = {
@@ -43,10 +49,29 @@ const rolePermissions: Record<string, string[]> = {
     'role.assign',
     'permission.view',
     'session.view',
+    'patient.view',
+    'patient.create',
+    'patient.edit',
+    'patient.delete',
+    'family.manage',
+    'card.manage',
   ],
-  receptionist: ['user.view'],
-  field_manager: ['user.view'],
-  field_executive: [],
+  receptionist: [
+    'user.view',
+    'patient.view',
+    'patient.create',
+    'patient.edit',
+    'family.manage',
+    'card.manage',
+  ],
+  field_manager: [
+    'user.view',
+    'patient.view',
+    'patient.create',
+  ],
+  field_executive: [
+    'patient.create',
+  ],
   customer: [],
 };
 
