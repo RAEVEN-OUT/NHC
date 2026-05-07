@@ -128,4 +128,10 @@ export class UpdatePatientDto {
   @IsEnum(CustomerStatus)
   @IsOptional()
   status?: CustomerStatus;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateFamilyMemberDto)
+  familyMembers?: CreateFamilyMemberDto[];
 }

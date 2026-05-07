@@ -38,6 +38,12 @@ export class PatientsController {
   @Delete(':id')
   @Permissions('patient.delete')
   remove(@Param('id') id: string, @GetUser('sub') actorId: string) {
-    return this.patientsService.softDelete(id, actorId);
+    return this.patientsService.hardDelete(id, actorId);
+  }
+
+  @Post(':id/reissue-card')
+  @Permissions('card.manage')
+  reissue(@Param('id') id: string, @GetUser('sub') actorId: string) {
+    return this.patientsService.reissueCard(id, actorId);
   }
 }

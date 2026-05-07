@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter, User, CreditCard, ChevronRight, MoreHorizontal } from 'lucide-react';
-import { apiGet } from '@/lib/api';
+import { Plus, Search, Filter, User, CreditCard, ChevronRight, MoreHorizontal, UserCheck, UserX, Trash2, X } from 'lucide-react';
+import { apiGet, apiDelete, apiPost } from '@/lib/api';
 
 interface Patient {
   id: string;
@@ -25,6 +25,8 @@ export default function PatientsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
 
   const fetchPatients = async () => {
     setLoading(true);
@@ -39,6 +41,57 @@ export default function PatientsPage() {
       console.error('Failed to fetch patients', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      setSelectedIds(new Set()); // Clear selection when exiting mode
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === patients.length && patients.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(patients.map(p => p.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedIds(next);
+  };
+
+  const handleBatchDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} patients?`)) return;
+    
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => apiDelete(`/patients/${id}`)));
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      fetchPatients();
+    } catch (err) {
+      alert('Failed to delete some patients');
+    }
+  };
+
+  const handleBatchReissue = async () => {
+    if (!confirm(`Are you sure you want to re-issue cards for ${selectedIds.size} patients?`)) return;
+    
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => apiPost(`/patients/${id}/reissue-card`, {})));
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      fetchPatients();
+    } catch (err) {
+      alert('Failed to re-issue some cards');
     }
   };
 
@@ -81,6 +134,14 @@ export default function PatientsPage() {
               <option value="INACTIVE">Inactive</option>
             </select>
 
+            <button 
+              className={selectionMode ? "button" : "secondary-button"} 
+              onClick={toggleSelectionMode}
+              style={{ minWidth: 100 }}
+            >
+              {selectionMode ? 'Cancel' : 'Select'}
+            </button>
+
             <button className="secondary-button" onClick={() => { setSearch(''); setStatus(''); }}>
               Reset
             </button>
@@ -96,6 +157,15 @@ export default function PatientsPage() {
         <table>
           <thead>
             <tr>
+              {selectionMode && (
+                <th style={{ width: 40 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.size === patients.length && patients.length > 0} 
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+              )}
               <th>Customer ID</th>
               <th>Name</th>
               <th>Contact</th>
@@ -108,7 +178,16 @@ export default function PatientsPage() {
             {patients.map((p) => {
               const activeCard = p.membershipCards.find(c => c.status === 'ACTIVE');
               return (
-                <tr key={p.id}>
+                <tr key={p.id} className={selectionMode && selectedIds.has(p.id) ? 'selected-row' : ''}>
+                  {selectionMode && (
+                    <td>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.has(p.id)} 
+                        onChange={() => toggleSelect(p.id)}
+                      />
+                    </td>
+                  )}
                   <td>
                     <code style={{ fontSize: 12, color: '#0f766e', fontWeight: 700 }}>
                       {p.customerCode}
@@ -143,9 +222,6 @@ export default function PatientsPage() {
                       <Link href={`/patients/${p.id}`} className="button secondary">
                         View
                       </Link>
-                      <button className="secondary-button" style={{ padding: '0 8px' }}>
-                        <MoreHorizontal size={16} />
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -153,7 +229,7 @@ export default function PatientsPage() {
             })}
             {patients.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#667085' }}>
+                <td colSpan={selectionMode ? 7 : 6} style={{ textAlign: 'center', padding: '40px', color: '#667085' }}>
                   No patients found matching your criteria.
                 </td>
               </tr>
@@ -161,6 +237,43 @@ export default function PatientsPage() {
           </tbody>
         </table>
       )}
+
+      {selectedIds.size > 0 && (
+        <BatchActionBar 
+          selectedCount={selectedIds.size} 
+          onClear={() => { setSelectedIds(new Set()); setSelectionMode(false); }}
+          onReissue={handleBatchReissue}
+          onDelete={handleBatchDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+function BatchActionBar({ selectedCount, onClear, onReissue, onDelete }: { selectedCount: number, onClear: () => void, onReissue: () => void, onDelete: () => void }) {
+  return (
+    <div className="batch-bar">
+      <div className="batch-info">
+        <h3>{selectedCount} Selected</h3>
+        <small>Batch Action Mode</small>
+      </div>
+      
+      <div className="batch-actions">
+        <button className="batch-btn" onClick={onReissue}>
+          <CreditCard size={24} />
+          <span>Re-issue</span>
+        </button>
+        <button className="batch-btn" onClick={onDelete}>
+          <Trash2 size={24} />
+          <span>Remit</span>
+        </button>
+      </div>
+
+      <div className="batch-close-wrapper">
+        <div className="batch-close" onClick={onClear}>
+          <X size={20} />
+        </div>
+      </div>
     </div>
   );
 }

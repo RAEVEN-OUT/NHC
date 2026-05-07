@@ -113,11 +113,28 @@ export class PatientsService {
 
   async update(id: string, dto: UpdatePatientDto, actorId?: string) {
     await this.findOne(id);
+    
+    // Extract familyMembers from DTO to handle separately
+    const { familyMembers, ...updateData } = dto;
+
     const patient = await this.prisma.customer.update({
       where: { id },
       data: {
-        ...dto,
-        dob: dto.dob ? new Date(dto.dob) : undefined,
+        ...updateData,
+        dob: updateData.dob ? new Date(updateData.dob) : undefined,
+        familyMembers: familyMembers !== undefined ? {
+          deleteMany: {}, // Remove all existing family members
+          create: familyMembers.map((fm) => ({
+            fullName: fm.fullName,
+            relationship: fm.relationship,
+            dob: fm.dob ? new Date(fm.dob) : null,
+            gender: fm.gender,
+            phone: fm.phone,
+          })),
+        } : undefined,
+      },
+      include: {
+        familyMembers: true,
       },
     });
 
@@ -132,11 +149,10 @@ export class PatientsService {
     return patient;
   }
 
-  async softDelete(id: string, actorId?: string) {
+  async hardDelete(id: string, actorId?: string) {
     await this.findOne(id);
-    await this.prisma.customer.update({
+    await this.prisma.customer.delete({
       where: { id },
-      data: { deletedAt: new Date() },
     });
 
     await this.audit.log({
@@ -149,10 +165,51 @@ export class PatientsService {
     return { deleted: true };
   }
 
+  async reissueCard(id: string, actorId?: string) {
+    const patient = await this.findOne(id);
+
+    // Deactivate all existing cards
+    await this.prisma.membershipCard.updateMany({
+      where: { customerId: id, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+
+    // Create new card
+    const newCard = await this.prisma.membershipCard.create({
+      data: {
+        customerId: id,
+        cardNumber: await this.generateCardNumber(),
+        issueDate: new Date(),
+        expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+      },
+    });
+
+    await this.audit.log({
+      actorId,
+      action: 'patient.card_reissued',
+      entityType: 'membership_cards',
+      entityId: newCard.id,
+      metadata: { patientId: id },
+    });
+
+    return newCard;
+  }
+
   private async generateCustomerCode(): Promise<string> {
     const year = new Date().getFullYear();
-    const count = await this.prisma.customer.count();
-    return `NHC-${year}-${(count + 1).toString().padStart(5, '0')}`;
+    const lastCustomer = await this.prisma.customer.findFirst({
+      where: { customerCode: { startsWith: `NHC-${year}-` } },
+      orderBy: { customerCode: 'desc' },
+    });
+
+    let nextNumber = 1;
+    if (lastCustomer) {
+      const parts = lastCustomer.customerCode.split('-');
+      const lastNumber = parseInt(parts[parts.length - 1], 10);
+      nextNumber = lastNumber + 1;
+    }
+
+    return `NHC-${year}-${nextNumber.toString().padStart(5, '0')}`;
   }
 
   private async generateCardNumber(): Promise<string> {

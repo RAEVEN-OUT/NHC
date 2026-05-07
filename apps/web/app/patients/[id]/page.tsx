@@ -61,10 +61,10 @@ export default function PatientProfilePage() {
           </div>
         </div>
         <div className="toolbar">
-          <button className="secondary-button" onClick={() => alert('Edit feature coming soon')}>
+          <Link href={`/patients/${id}/edit`} className="secondary-button" style={{ textDecoration: 'none' }}>
             <Edit size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />
             Edit Profile
-          </button>
+          </Link>
           <button className="danger-button" onClick={handleDelete}>
             <Trash2 size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />
             Delete
@@ -141,7 +141,6 @@ export default function PatientProfilePage() {
             <h2 style={{ color: activeCard ? 'white' : 'inherit' }}>Membership Card</h2>
             {activeCard ? (
               <div>
-                <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Standard Card</div>
                 <div style={{ opacity: 0.8, fontSize: 13, marginBottom: 20 }}>{activeCard.cardNumber}</div>
                 
                 <div style={{ display: 'grid', gap: 10 }}>
